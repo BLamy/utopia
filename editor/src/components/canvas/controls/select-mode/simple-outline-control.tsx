@@ -1,5 +1,8 @@
 import React from 'react'
+import { MetadataUtils } from '../../../../core/model/element-metadata-utils'
+import { stripNulls } from '../../../../core/shared/array-utils'
 import * as EP from '../../../../core/shared/element-path'
+import { boundingRectangleArray } from '../../../../core/shared/math-utils'
 import { ElementPath } from '../../../../core/shared/project-file-types'
 import { when } from '../../../../utils/react-conditionals'
 import { useColorTheme } from '../../../../uuiui'
@@ -51,22 +54,36 @@ const OutlineControl = React.memo<OutlineControlProps>((props) => {
     )
   }, 'OutlineControl colors')
 
-  const outlineRef = useBoundingBox(targets, (ref, boundingBox) => {
-    ref.current.style.left = `${boundingBox.x + 0.5 / scale}px`
-    ref.current.style.top = `${boundingBox.y + 0.5 / scale}px`
-    ref.current.style.width = `${boundingBox.width - (0.5 / scale) * 3}px`
-    ref.current.style.height = `${boundingBox.height - (0.5 / scale) * 3}px`
-  })
+  const boundingBox = useEditorState((store) => {
+    const frames = stripNulls(
+      targets.map((target) =>
+        MetadataUtils.getFrameInCanvasCoords(target, store.editor.jsxMetadata),
+      ),
+    )
+    return boundingRectangleArray(frames)
+  }, 'boundingBox')
+
+  // const outlineRef = useBoundingBox(targets, (ref, boundingBox) => {
+  //   console.log('outlineRef', boundingBox.x, boundingBox.y)
+  //   ref.current.style.left = `${boundingBox.x + 0.5 / scale}px`
+  //   ref.current.style.top = `${boundingBox.y + 0.5 / scale}px`
+  //   ref.current.style.width = `${boundingBox.width - (0.5 / scale) * 3}px`
+  //   ref.current.style.height = `${boundingBox.height - (0.5 / scale) * 3}px`
+  // })
 
   const color =
     props.color === 'primary' ? colors[0] : colorTheme.canvasSelectionSecondaryOutline.value
 
-  if (targets.length > 0) {
+  if (targets.length > 0 && boundingBox != null) {
     return (
       <div
-        ref={outlineRef}
+        // ref={outlineRef}
         className='role-outline'
         style={{
+          left: boundingBox.x + 0.5,
+          top: boundingBox.y + 0.5,
+          width: boundingBox.width - 1.5,
+          height: boundingBox.height - 1.5,
           position: 'absolute',
           boxSizing: 'border-box',
           boxShadow: `0px 0px 0px ${1 / scale}px ${color}`,
